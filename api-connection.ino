@@ -4,7 +4,38 @@
 #include "ArduinoJson.h"
 #include "DallasTemperature.h"
 #include "OneWire.h"
-#include "Wire.h"
+#include "Arduino.h"
+#include "WifiLocation.h"
+ #include "QuickDebug.h"
+
+//--------TEMPERATURA--------//
+
+#define MAX_TEMP 28
+#define TEMP_PIN 18
+
+OneWire oneWire(TEMP_PIN);
+DallasTemperature sensors(&oneWire);
+float temperatureC;
+
+void sendTemp() {
+  sensors.requestTemperatures();
+  temperatureC = sensors.getTempCByIndex(0);
+}
+
+//-------LOCALIZAÇÃO --------//
+
+const char* googleApiKey = "";
+WifiLocation location(googleApiKey);
+float lat, lon;
+
+void sendLoc(){
+  Serial.println(location.getStatus());
+  location_t loc = location.getGeoFromWiFi();
+  lat = loc.lat;
+  lon = loc.lon;
+}
+
+//--------------------------//
 
 const char* ssid = "dat-dcop";
 const char* password = "saidaqui";
@@ -19,6 +50,7 @@ void setup() {
   sensors.begin();
   delay(4000);
   
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password); 
   
   while (WiFi.status() != WL_CONNECTED){
@@ -30,7 +62,12 @@ void setup() {
 }
   
 void loop() {
+
   if(value < 1){
+
+    sendLoc();
+    delay(1000);
+    sendTemp();
 
     if(WiFi.status()== WL_CONNECTED){ 
       HTTPClient http;   
@@ -39,6 +76,9 @@ void loop() {
 
       StaticJsonDocument<200> doc;
       doc["value"] = value;
+      doc["temp"] = temperatureC;
+      doc["lat"] = lat;
+      doc["lon"] = lon;
       
       String body;
       serializeJson(doc, body);
@@ -63,3 +103,4 @@ void loop() {
   }
   
 }
+
