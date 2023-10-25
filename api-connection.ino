@@ -35,6 +35,12 @@ void sendLoc(){
   lon = loc.lon;
 }
 
+void sendLocHttp(){
+  HTTPClient http;   
+  http.begin("https://maps.googleapis.com/maps/api/geocode/json?");
+  http.addHeader("Content-Type", "application/json");
+}
+
 //--------------------------//
 
 const char* ssid = "dat-dcop";
