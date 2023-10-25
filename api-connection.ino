@@ -22,7 +22,7 @@ void sendTemp() {
   temperatureC = sensors.getTempCByIndex(0);
 }
 
-//-------LOCALIZAÇÃO --------//
+//-------LOCALIZAÇÃO--------//
 
 const char* googleApiKey = "";
 WifiLocation location(googleApiKey);
