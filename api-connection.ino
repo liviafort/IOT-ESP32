@@ -6,12 +6,13 @@
 #include "OneWire.h"
 #include "Arduino.h"
 #include "WifiLocation.h"
- #include "QuickDebug.h"
+#include "QuickDebug.h"
 
 //--------TEMPERATURA--------//
 
 #define MAX_TEMP 28
-#define TEMP_PIN 18
+#define TEMP_PIN 32
+int value = 0;
 
 OneWire oneWire(TEMP_PIN);
 DallasTemperature sensors(&oneWire);
@@ -24,55 +25,55 @@ void sendTemp() {
 
 //-------LOCALIZAÇÃO--------//
 
-const char* googleApiKey = "";
-WifiLocation location(googleApiKey);
 float lat, lon;
-
-void sendLoc(){
-  Serial.println(location.getStatus());
-  location_t loc = location.getGeoFromWiFi();
-  lat = loc.lat;
-  lon = loc.lon;
-}
-
-void sendLocHttp(){
-  HTTPClient http;   
-  http.begin("https://maps.googleapis.com/maps/api/geocode/json?");
-  http.addHeader("Content-Type", "application/json");
-}
-
-//--------------------------//
-
+const char* googleApiKey = "";
 const char* ssid = "dat-dcop";
-const char* password = "saidaqui";
+const char* passwd = "saidaqui";
 
-int value = 0;
+WifiLocation location (googleApiKey);
 
-AsyncWebServer server(80);
+void setClock () {
+    configTime (0, 0, "pool.ntp.org", "time.nist.gov");
+
+    Serial.print ("Waiting for NTP time sync: ");
+    time_t now = time (nullptr);
+    while (now < 8 * 3600 * 2) {
+        delay (500);
+        Serial.print (".");
+        now = time (nullptr);
+    }
+    struct tm timeinfo;
+    gmtime_r (&now, &timeinfo);
+    Serial.print ("\n");
+    Serial.print ("Current time: ");
+    Serial.print (asctime (&timeinfo));
+}
 
 void setup() {
+    Serial.begin(115200);
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, passwd);
+    while (WiFi.status() != WL_CONNECTED) {
+        Serial.print("Attempting to connect to WPA SSID: ");
+        Serial.println(ssid);
+        Serial.print("Status = ");
+        Serial.println(WiFi.status());
+        delay(500);
+    }
+    Serial.println ("Connected");
+    setClock ();
+    
+    location_t loc = location.getGeoFromWiFi();
   
-  Serial.begin(115200);
-  sensors.begin();
-  delay(4000);
-  
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password); 
-  
-  while (WiFi.status() != WL_CONNECTED){
-    delay(1000);
-    Serial.println("Conectando ao wifi..");
-  }
-  Serial.println("Conectado!!!");
-  
+    lat = loc.lat;
+    lon = loc.lon;
+
 }
-  
+
 void loop() {
 
   if(value < 1){
 
-    sendLoc();
-    delay(1000);
     sendTemp();
 
     if(WiFi.status()== WL_CONNECTED){ 
@@ -109,4 +110,3 @@ void loop() {
   }
   
 }
-
