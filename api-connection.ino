@@ -8,22 +8,20 @@
 #include "WifiLocation.h"
 #include "QuickDebug.h"
 
-//--------TEMPERATURA--------//
+#define TEMP_PIN 18
 
-#define MAX_TEMP 28
-#define TEMP_PIN 32
-int value = 0;
+//-----TEMPO DE REQUISIÇÃO---//
+
+unsigned long currentMillis = millis();
+const unsigned long interval = 30000; 
+unsigned long previousMillis = 0;
+
+//-------LOCALIZAÇÃO E TEMPERATURA--------//
 
 OneWire oneWire(TEMP_PIN);
 DallasTemperature sensors(&oneWire);
 float temperatureC;
-
-void sendTemp() {
-  sensors.requestTemperatures();
-  temperatureC = sensors.getTempCByIndex(0);
-}
-
-//-------LOCALIZAÇÃO--------//
+int value = 0;
 
 float lat, lon;
 const char* googleApiKey = "";
@@ -31,6 +29,18 @@ const char* ssid = "dat-dcop";
 const char* passwd = "saidaqui";
 
 WifiLocation location (googleApiKey);
+
+void sendTempLoc() {
+    // Atualize a temperatura
+    sensors.requestTemperatures();
+    temperatureC = sensors.getTempCByIndex(0);
+    
+    // Atualize a localização
+    setClock();
+    location_t loc = location.getGeoFromWiFi();
+    lat = loc.lat;
+    lon = loc.lon;
+}
 
 void setClock () {
     configTime (0, 0, "pool.ntp.org", "time.nist.gov");
@@ -61,20 +71,19 @@ void setup() {
         delay(500);
     }
     Serial.println ("Connected");
-    setClock ();
-    
-    location_t loc = location.getGeoFromWiFi();
-  
-    lat = loc.lat;
-    lon = loc.lon;
 
 }
 
 void loop() {
 
-  if(value < 1){
+  currentMillis = millis();
+  Serial.println(currentMillis);
 
-    sendTemp();
+  if(currentMillis - previousMillis >= interval) {
+        
+    previousMillis = currentMillis;
+
+    sendTempLoc();
 
     if(WiFi.status()== WL_CONNECTED){ 
       HTTPClient http;   
@@ -105,8 +114,8 @@ void loop() {
     }else{
         Serial.println("Error in WiFi connection");   
     }
-    delay(10000);
     value++;
+    delay(10000);
   }
   
 }
